@@ -11,6 +11,9 @@ import six
 from PIL import Image
 from multiprocessing import Process
 
+# 将img 转化成lmdb格式
+
+
 def get_dict(char_list):
     char_dict={}
     for item in char_list:
@@ -187,6 +190,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_process', type = int,default=5, required = True, help = 'num_process to do')
     args = parser.parse_args()
 
+# file 是txtpath
     if args.file is not None:
         if len(args.file)!=0:
             image_path_list, label_list = read_data_from_file(args.file)

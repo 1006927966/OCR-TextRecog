@@ -85,6 +85,14 @@ def loadkeyfile(keyfile):
     alphabet = alphabet.replace('\ufeff', '').replace('\u3000', '').strip()
     return alphabet
 
+def loadchkeyfile(keyfile):
+    with open(keyfile, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    alphabet = "".join([line.strip() for line in lines])
+    alphabet = alphabet.replace('\ufeff', '').replace('\u3000', '').strip()
+    return alphabet
+
+
 def save_checkpoint(state,checkpoint, filename):
     filepath = os.path.join(checkpoint, filename)
     torch.save(state, filepath)

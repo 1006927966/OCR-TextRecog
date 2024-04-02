@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
 import os
-import lmdb
 import sys
 import six
 import re
@@ -15,6 +12,7 @@ from dataload.dataAug import *
 import torchvision.transforms as transforms
 from utils.label2tensor import strLabelConverter
 
+# 文本不使用lmdb 直接从txt文件加载
 # 对图像进行padding
 def Add_Padding(image, top, bottom, left, right, color=(255,255,255)):
     if(not isinstance(image,np.ndarray)):
@@ -30,61 +28,71 @@ def fixkeyCh(key):
 def fixkeyEn(key):
     return ''.join(re.findall("[0-9a-zA-Z]",key))
 
+
 # 基于lmdb_file 完成数据读取
-class LoadDatasetLmdb(Dataset):
-    def __init__(self,config,lmdb_file):
+class LoadDataset(Dataset):
+    def __init__(self, config, train=True):
         num_workers = config['train']['num_workers']
         self.fixKey = config['train']['fixKeyON']
         self.fixKeyType = config['train']['fixKeytype']
-        assert self.fixKeyType in ['En','Ch']
-        self.env = lmdb.open(lmdb_file, max_readers=num_workers, readonly=True, lock=False, readahead=False, meminit=False)
-        if not self.env:
-            print('cannot creat lmdb from %s' % (lmdb_file))
-            sys.exit(0)
+        assert self.fixKeyType in ['En', 'Ch']
+        self.picpaths, self.labels = self.readlines()
+        if train:
+            self.picpaths = self.picpaths[100000:]
+            self.labels = self.labels[100000:]
+        else:
+            self.picpaths = self.picpaths[:100000]
+            self.labels = self.labels[:100000]
+        self.buffer = self.getbuffer()
 
-        with self.env.begin(write=False) as txn:
-            nSamples = int(txn.get('num-samples'.encode('utf-8')))
-            self.nSamples = nSamples
-        
+    def readlines(self):
+        srcdir = "/code/wangshiyuan02/data/ocr/commocr/textline/generateData/companyname700w40032"
+        txtpath = "/code/wangshiyuan02/data/ocr/commocr/textline/generateData/tmp_labels700w.txt"
+        picpaths = []
+        labels = []
+        with open(txtpath, "r", encoding="utf-8") as f:
+            line = f.readline()
+            while line:
+                if "_" not in line:
+                    line = f.readline()
+                    continue
+                factors = line.strip().split()
+                picname = factors[0]+".jpg"
+                label = factors[-1]
+                picpath = os.path.join(srcdir, picname)
+                if os.path.exists(picpath):
+                    picpaths.append(picpath)
+                    labels.append(label)
+                line = f.readline()
+        return picpaths, labels
+
+    def getbuffer(self):
+        picpath = self.picpaths[0]
+        label = self.labels[0]
+        img = Image.open(picpath).convert('RGB')
+        return (img, label)
 
     def __len__(self):
-        return self.nSamples
+        return len(self.picpaths)
 
     def __getitem__(self, index):
-        assert index <= len(self), 'index range error'
-        index += 1
-        # key 有两种，一种为image-index  一种为label-index
-
-        with self.env.begin(write=False) as txn:
-            img_key = 'image-%09d' % index
-            imgbuf = txn.get(img_key.encode('utf-8'))
-            buf = six.BytesIO()
-            buf.write(imgbuf)
-            buf.seek(0)
-            try:
-                img = Image.open(buf).convert('RGB')
-            except IOError:
-                print('Corrupted image for %d' % index)
-                return self[index + 1]
-
-            label_key = 'label-%09d' % index
-            label = txn.get(label_key.encode('utf-8')).decode().replace('\ufeff', '').replace('\u3000', '').strip()
-        if self.fixKey:
-            if self.fixKeyType == 'En':
-                label = fixkeyEn(label)
-                label = label.lower()
-            elif self.fixKeyType == 'Ch':
-                label = fixkeyCh(label)
-        return (img, label)
+        try:
+            picpath = self.picpaths[index]
+            label = self.labels[index]
+            img = Image.open(picpath).convert('RGB')
+            return (img, label)
+        except:
+            return self.buffer
 
 
 class resizeNormalize(object):
     def __init__(self, height=32, max_width=280, types='train'):
-        assert types in ['train','val','test']
+        assert types in ['train', 'val', 'test']
         self.toTensor = transforms.ToTensor()
         self.max_width = max_width
         self.types = types
         self.height = height
+
     def __call__(self, img):
         if (self.types == 'train' or self.types == 'val'):
             w, h = img.size
@@ -97,7 +105,7 @@ class resizeNormalize(object):
                 img = img.resize((self.max_width, self.height), Image.BILINEAR)
         elif self.types == 'test':
             w, h = img.size
-            img = img.resize((int(self.height / float(h) * w)//4*4, self.height), Image.BILINEAR)
+            img = img.resize((int(self.height / float(h) * w) // 4 * 4, self.height), Image.BILINEAR)
         img = self.toTensor(img)
         img.sub_(0.5).div_(0.5)
         return img
@@ -105,7 +113,7 @@ class resizeNormalize(object):
 
 # 获取图像、标签tensor 的函数
 class alignCollate(object):
-    def __init__(self, config,trans_type):
+    def __init__(self, config, trans_type):
         self.imgH = config['train']['imgH']
         self.imgW = config['train']['imgW']
         self.use_tia = config['train']['use_tia']
@@ -114,28 +122,28 @@ class alignCollate(object):
         self.trans_type = trans_type
         self.isGray = config['train']['isGray']
         self.ConAug = config['train']['ConAug']
-        
+
     def __call__(self, batch):
         images, labels = zip(*batch)
         new_images = []
-        for (image,label) in zip(images,labels):
+        for (image, label) in zip(images, labels):
             if self.trans_type == 'train':
-                
-#                 image = np.array(image)
-#                 try:
-#                     image = warp(image,self.use_tia,self.aug_prob)
-#                 except:
-#                     pass
-#                 image = Image.fromarray(image)
-                
+
+                #                 image = np.array(image)
+                #                 try:
+                #                     image = warp(image,self.use_tia,self.aug_prob)
+                #                 except:
+                #                     pass
+                #                 image = Image.fromarray(image)
+
                 if self.isGray:
                     image = image.convert('L')
             new_images.append(image)
         transform = resizeNormalize(self.imgH, self.imgW, self.trans_type)
-        
+
         fix_image = []
         fix_label = []
-        for (img,label) in zip(new_images,labels):
+        for (img, label) in zip(new_images, labels):
             try:
                 img = transform(img)
                 fix_image.append(img)
@@ -143,24 +151,16 @@ class alignCollate(object):
             except:
                 pass
         fix_image = torch.cat([t.unsqueeze(0) for t in fix_image], 0)
-        intText,intLength = self.label_transform.encode(fix_label)
-        return fix_image, intText,intLength,fix_label
+        intText, intLength = self.label_transform.encode(fix_label)
+        return fix_image, intText, intLength, fix_label
 
-def CreateDataset(config,lmdb_type):
-    assert lmdb_type in ['train','val']
+
+def CreateDataset(config, lmdb_type):
+    assert lmdb_type in ['train', 'val']
     if lmdb_type == 'train':
-        lmdb_file = config['train']['train_lmdb_file']
-        assert isinstance(lmdb_file,list)
-        assert len(lmdb_file)>=1
-        train_dataset = LoadDatasetLmdb(config,os.path.join(config['train']['data_root_train'],lmdb_file[0]))
-        for i in range(1,len(lmdb_file)):
-            train_dataset+=LoadDatasetLmdb(config,os.path.join(config['train']['data_root_train'],lmdb_file[i]))
+        train_dataset = LoadDataset(config)
         return train_dataset
     elif lmdb_type == 'val':
-        lmdb_file = config['train']['val_lmdb_file']
-        val_datasets = []
-        for i in range(len(lmdb_file)):
-            val_datasets.append(LoadDatasetLmdb(config,os.path.join(config['train']['data_root_val'],lmdb_file[i])))
+        val_datasets = LoadDataset(config, False)
         return val_datasets
-        
-    
+

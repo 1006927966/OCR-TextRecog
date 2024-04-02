@@ -1,29 +1,29 @@
 train:
   algorithm: 'SVTR' 
-  data_root_train: ../scene #/src/notebooks/MyWorkData/train_data/data   ## lmdb数据的根目录
+  data_root_train: /code/wujilong/data/scene #/src/notebooks/MyWorkData/train_data/data   ## lmdb数据的根目录
   train_lmdb_file: ['scene_train'] #训练集lmdb名称地址和data_root一起使用
-  data_root_val: ../scene
+  data_root_val: /code/wujilong/data/scene
   val_lmdb_file: ['scene_val','scene_test'] #验证集lmdb名称地址和data_root一起使用
   isVal: True
-  val_step: 2000
-  key_file: ./keyFile/keys.txt # key文件地址
-  num_workers: 6 ## dataload的worker数
+  val_step: 30000
+  key_file: /code/wujilong/code/OCR-TextRecog/keyFile/chn_all.txt # key文件地址
+  num_workers: 16 ## dataload的worker数
   fixKeyON: False  ## 是否需要对key进行清洗，去除一些无用字符
   fixKeytype: 'En'
   use_tia: False ## 是否需要用tia 数据增强
   ConAug: True
   usel2loss: False
   aug_prob: 0.4 ## 图片做数据增强的概率
-  imgH: 64   ## 图片的H，只能为32
+  imgH: 32   ## 图片的H，只能为32
   imgW: 256  ## 图片的W，建议280，320
   isGray: False ##是否用灰度图训练
   alphabet: '' ## 训练用的key，这里默认即可，代码会根据key_file数据更改
   nclass: 1000 ## 字符类别，这里默认即可，代码会根据key_file数据更改
   epochs: 100 ## 训练的epoch数
   warmepochs: 5 ## warm训练的epoch数
-  batch_size: 128 ## 训练的batch_size
-  show_iter: 50 ## 迭代多少次显示一次loss
-  save_dir: './checkpointFile'  ## 模型和log保存的地址
+  batch_size: 64 ## 训练的batch_size
+  show_iter: 5000 ## 迭代多少次显示一次loss
+  save_dir: '/code/wujilong/model/checkpointFile'  ## 模型和log保存的地址
   restore: False ## 是否开启断点继续训练
   resume_file: './checkpointFile/modelFile/SVTR-epoch-2-wordAcc-0.0000-ID.pth' ### 断点继续训练所需加载的模型地址
 
@@ -33,7 +33,7 @@ model:
 #   optim_function: models.optimizer.optimizer,AdamDecay
   optim_function: models.optimizer.optimizer,AdamWDecay
   backbone:
-    img_size: [32,320]
+    img_size: [32,256]
     in_channels: 3
     embed_dim: [64, 128, 256]
     depth: [3, 6, 3]

@@ -11,7 +11,7 @@ class strLabelConverter(object):
         alphabet (str): set of the possible characters.
         ignore_case (bool, default=True): whether or not to ignore all of the case.
     """
-
+# 基于alphabet(字符序列)获取对应的索引值
     def __init__(self, alphabet):
         self.dict = {}
         for i, char in enumerate(alphabet):
