@@ -1,11 +1,12 @@
 train:
-  algorithm: 'SVTR' 
+  algorithm: 'SVTR'
+  local_rank: 0
   data_root_train: /code/wujilong/data/scene #/src/notebooks/MyWorkData/train_data/data   ## lmdb数据的根目录
   train_lmdb_file: ['scene_train'] #训练集lmdb名称地址和data_root一起使用
   data_root_val: /code/wujilong/data/scene
   val_lmdb_file: ['scene_val','scene_test'] #验证集lmdb名称地址和data_root一起使用
   isVal: True
-  val_step: 30000
+  val_step: 20000
   key_file: /code/wujilong/code/OCR-TextRecog/keyFile/chn_all.txt # key文件地址
   num_workers: 16 ## dataload的worker数
   fixKeyON: False  ## 是否需要对key进行清洗，去除一些无用字符
@@ -21,7 +22,7 @@ train:
   nclass: 1000 ## 字符类别，这里默认即可，代码会根据key_file数据更改
   epochs: 100 ## 训练的epoch数
   warmepochs: 5 ## warm训练的epoch数
-  batch_size: 64 ## 训练的batch_size
+  batch_size: 128 ## 训练的batch_size
   show_iter: 5000 ## 迭代多少次显示一次loss
   save_dir: '/code/wujilong/model/checkpointFile'  ## 模型和log保存的地址
   restore: False ## 是否开启断点继续训练
@@ -53,7 +54,7 @@ model:
     STN_ON: True
     use_rep: False
     tps_inputsize: [32, 64]
-    tps_outputsize: [32, 320]
+    tps_outputsize: [32, 256]
     num_control_points: 20
     tps_margins: [0.05, 0.05]
     stn_activation: 'relu'

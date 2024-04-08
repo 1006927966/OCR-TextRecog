@@ -39,6 +39,17 @@ class strLabelConverter(object):
         text = result
         return (torch.IntTensor(text), torch.IntTensor(length))
 
+
+    def encodestr(self, text):
+        result = []
+        length = []
+        length.append(len(text))
+        for char in text:
+            index = self.dict[char]
+            result.append(index)
+        return (result, length)
+
+
     def decode(self, t, length, raw=False):
         """Decode encoded texts back into strs.
 

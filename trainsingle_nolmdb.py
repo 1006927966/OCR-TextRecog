@@ -158,6 +158,11 @@ def trainProgram(opt):
         log_write_val = Logger(os.path.join(config['train']['save_dir'], 'log', 'logval.txt'),
                                title=config['model']['backbone'])
         log_write_val.set_names(['train_step'] + config['train']['val_lmdb_file'] + ['avg_acc'])
+
+
+    # 自己添加log.txt 去除复杂的logtxt
+    trainlog = os.path.join(config['train']['save_dir'],  'log.txt')
+    vallog =  os.path.join(config['train']['save_dir'],  'logval.txt')
     n_epoch = config['train']['epochs']
     for epoch in range(start_epoch, n_epoch):
         if epoch < config['train']['warmepochs']:
@@ -220,7 +225,11 @@ def trainProgram(opt):
                     train_step % config['train']['val_step'] == 0 or train_step == n_epoch * len(
                 train_loader) - 1) and train_step != 0:
                 acc_dict, acc_list = Val(model, val_loader, criterion, config)
-                log_write_val.append([train_step] + acc_list)
+                with open(vallog, "a") as f:
+                    f.write("epoch: {} trainstep: {} acc: {}\n".format(epoch, train_step, acc_list[0]))
+
+
+                # log_write_val.append(train_step + acc_list)
                 save_checkpoint({
                     'epoch': train_step, # 训练步长
                     'state_dict': model.state_dict(), # 模型参数
@@ -229,7 +238,11 @@ def trainProgram(opt):
                     config['train']['algorithm'] + '-step-{}-wordAcc-{}-{}.pth'.format(train_step,
                                                                                        '%.4f' % acc_list[-1],
                                                                                        opt.tag))
-                log_write.append([train_step, total_loss_record.val(), ctc_loss_record.val(), l2_loss_record.val()])
+                with open(trainlog, "a") as f:
+                    f.write("epoch: {} trainstep: {} loss: {} CTCloss: {} l2loss: {}".format(
+                        epoch, train_step, total_loss_record.val(), ctc_loss_record.val(), l2_loss_record.val()
+                    ))
+                #log_write.append([train_step, total_loss_record.val(), ctc_loss_record.val(), l2_loss_record.val()])
             batch_start = time.time()
 
         print('[%d/%d] epochTotalloss: %.3f epochCTCLoss: %.3f epochL2loss: %.3f lr: %.6f epochTime: %.2f h' % (

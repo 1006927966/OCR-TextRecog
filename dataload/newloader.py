@@ -37,6 +37,7 @@ class LoadDataset(Dataset):
         self.fixKeyType = config['train']['fixKeytype']
         assert self.fixKeyType in ['En', 'Ch']
         self.picpaths, self.labels = self.readlines()
+        self.label_transform = strLabelConverter(config['train']['alphabet'])
         if train:
             self.picpaths = self.picpaths[100000:]
             self.labels = self.labels[100000:]
@@ -48,6 +49,7 @@ class LoadDataset(Dataset):
     def readlines(self):
         srcdir = "/code/wangshiyuan02/data/ocr/commocr/textline/generateData/companyname700w40032"
         txtpath = "/code/wangshiyuan02/data/ocr/commocr/textline/generateData/tmp_labels700w.txt"
+        # txtpath = "/code/wangshiyuan02/data/ocr/commocr/textline/generateData/test.txt"
         picpaths = []
         labels = []
         with open(txtpath, "r", encoding="utf-8") as f:
@@ -70,7 +72,8 @@ class LoadDataset(Dataset):
         picpath = self.picpaths[0]
         label = self.labels[0]
         img = Image.open(picpath).convert('RGB')
-        return (img, label)
+        labelid = self.label_transform.encodestr(label)
+        return (img, label, labelid)
 
     def __len__(self):
         return len(self.picpaths)
@@ -80,7 +83,8 @@ class LoadDataset(Dataset):
             picpath = self.picpaths[index]
             label = self.labels[index]
             img = Image.open(picpath).convert('RGB')
-            return (img, label)
+            labelid = self.label_transform.encodestr(label) # 转成[result, length] ->[[1,2,3], [3]]
+            return (img, label, labelid)
         except:
             return self.buffer
 
@@ -124,18 +128,10 @@ class alignCollate(object):
         self.ConAug = config['train']['ConAug']
 
     def __call__(self, batch):
-        images, labels = zip(*batch)
+        images, labels, labelids = zip(*batch)
         new_images = []
         for (image, label) in zip(images, labels):
             if self.trans_type == 'train':
-
-                #                 image = np.array(image)
-                #                 try:
-                #                     image = warp(image,self.use_tia,self.aug_prob)
-                #                 except:
-                #                     pass
-                #                 image = Image.fromarray(image)
-
                 if self.isGray:
                     image = image.convert('L')
             new_images.append(image)
@@ -143,16 +139,20 @@ class alignCollate(object):
 
         fix_image = []
         fix_label = []
-        for (img, label) in zip(new_images, labels):
+        intText = []
+        intLength = []
+        for (img, label, labelid) in zip(new_images, labels, labelids):
             try:
                 img = transform(img)
                 fix_image.append(img)
                 fix_label.append(label)
+                intText += labelid[0]
+                intLength.append(labelid[1][0])
             except:
                 pass
         fix_image = torch.cat([t.unsqueeze(0) for t in fix_image], 0)
-        intText, intLength = self.label_transform.encode(fix_label)
-        return fix_image, intText, intLength, fix_label
+        #intText, intLength = self.label_transform.encode(fix_label)
+        return fix_image, torch.IntTensor(intText), torch.IntTensor(intLength), fix_label
 
 
 def CreateDataset(config, lmdb_type):
