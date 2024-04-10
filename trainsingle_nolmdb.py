@@ -253,7 +253,7 @@ def trainProgram(opt):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--local_rank', type=int, default=-1, help='DDP parameter, do not modify')
-    parser.add_argument('--config', type=str, default="/code/wujilong/code/OCR-TextRecog/config/SVTR-T-Ch-stn.yaml",
+    parser.add_argument('--config', type=str, default="/code/wujilong/code/OCR-TextRecog/config/mobilev3CRNN.yaml",
                         help='DDP parameter, do not modify')
     parser.add_argument('--tag', type=str, default="CHINESE", help='DDP parameter, do not modify')
     opt = parser.parse_args()

@@ -21,10 +21,10 @@ train:
   alphabet: '' ## 训练用的key，这里默认即可，代码会根据key_file数据更改
   nclass: 1000 ## 字符类别，这里默认即可，代码会根据key_file数据更改
   epochs: 100 ## 训练的epoch数
-  warmepochs: 5 ## warm训练的epoch数
+  warmepochs: 1 ## warm训练的epoch数
   batch_size: 128 ## 训练的batch_size
   show_iter: 5000 ## 迭代多少次显示一次loss
-  save_dir: '/code/wujilong/model/checkpointFile'  ## 模型和log保存的地址
+  save_dir: '/code/wujilong/model/checkpointFile2'  ## 模型和log保存的地址
   restore: False ## 是否开启断点继续训练
   resume_file: './checkpointFile/modelFile/SVTR-epoch-2-wordAcc-0.0000-ID.pth' ### 断点继续训练所需加载的模型地址
 
