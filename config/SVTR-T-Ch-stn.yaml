@@ -80,4 +80,4 @@ optimizer:
   
   
 infer:
- model_file: './checkpointFile/modelFile/SVTR-step-10000-wordAcc-0.5132-chinese.pth'
+ model_file: '/code/wujilong/model/checkpointFile/modelFile/SVTR-step-40000-wordAcc-0.8784-CHINESE.pth'

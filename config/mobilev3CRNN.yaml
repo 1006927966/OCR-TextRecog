@@ -66,5 +66,6 @@ optimizer:
     weight_decay: 0.01
 
 infer:
- model_file: './checkpointFile-mobilev3CRNN/modelFile/CRNN-step-132000-wordAcc-0.5145-chinese.pth'
+ model_file: '/code/wujilong/model/checkpointFileCrnn/modelFile/CRNN-step-320000-wordAcc-0.7748-CHINESE.pth'
+
 
